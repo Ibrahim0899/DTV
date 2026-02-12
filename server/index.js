@@ -23,6 +23,11 @@ const io = new Server(httpServer, {
     },
 });
 
+// ── Latency ping handler ──────────────────────────────────
+io.on('connection', (socket) => {
+    socket.on('ping-check', (cb) => { if (typeof cb === 'function') cb(); });
+});
+
 // ── Game Data (mirrored from client) ──────────────────────
 const CARDS_BONUS = [
     { text: "Entretien d'embauche pour le métier de tes rêves.", effect: 3 },

@@ -15,7 +15,7 @@ export default function OnlineLobby() {
         setLoading(true);
         setError('');
 
-        const socket = io(import.meta.env.VITE_SERVER_URL);
+        const socket = io(import.meta.env.VITE_SERVER_URL, { timeout: 10000 });
         socket.on('connect', () => {
             socket.emit('create-room', { playerName: playerName.trim() }, (res) => {
                 socket.disconnect(); // Disconnect — OnlineGame will create its own
@@ -46,7 +46,7 @@ export default function OnlineLobby() {
         setLoading(true);
         setError('');
 
-        const socket = io(import.meta.env.VITE_SERVER_URL);
+        const socket = io(import.meta.env.VITE_SERVER_URL, { timeout: 10000 });
         socket.on('connect', () => {
             socket.emit('join-room', { roomCode: roomCode.trim().toUpperCase(), playerName: playerName.trim() }, (res) => {
                 socket.disconnect(); // Disconnect — OnlineGame will create its own

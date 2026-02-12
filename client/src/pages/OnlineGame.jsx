@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import PathSelection from '../components/PathSelection.jsx';
@@ -11,6 +11,7 @@ import QuestionModal from '../components/QuestionModal.jsx';
 import ObjectiveDice from '../components/ObjectiveDice.jsx';
 import TurnSummary from '../components/TurnSummary.jsx';
 import VictoryScreen from '../components/VictoryScreen.jsx';
+import ConnectionStatus from '../components/ConnectionStatus.jsx';
 
 export default function OnlineGame() {
     const location = useLocation();
@@ -25,6 +26,8 @@ export default function OnlineGame() {
     const [playerName, setPlayerName] = useState('');
     const [disconnectedPlayer, setDisconnectedPlayer] = useState(null);
     const [connectionError, setConnectionError] = useState('');
+    const [actionPending, setActionPending] = useState(false);
+    const actionTimeoutRef = useRef(null);
 
     useEffect(() => {
         const state = location.state;
@@ -39,8 +42,14 @@ export default function OnlineGame() {
         setPlayerName(pn);
         setIsHost(ih);
 
-        // Create a fresh socket connection
-        const socket = io(import.meta.env.VITE_SERVER_URL);
+        // Create a fresh socket connection with auto-reconnection
+        const socket = io(import.meta.env.VITE_SERVER_URL, {
+            reconnection: true,
+            reconnectionAttempts: 15,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 10000,
+        });
         socketRef.current = socket;
 
         socket.on('connect', () => {
@@ -63,6 +72,12 @@ export default function OnlineGame() {
 
         socket.on('game-state', (newState) => {
             setGameState(newState);
+            // Clear action lock when new state arrives
+            setActionPending(false);
+            if (actionTimeoutRef.current) {
+                clearTimeout(actionTimeoutRef.current);
+                actionTimeoutRef.current = null;
+            }
         });
 
         socket.on('player-disconnected', ({ playerName: name }) => {
@@ -77,6 +92,7 @@ export default function OnlineGame() {
 
         return () => {
             socket.disconnect();
+            if (actionTimeoutRef.current) clearTimeout(actionTimeoutRef.current);
         };
     }, []);
 
@@ -167,7 +183,7 @@ export default function OnlineGame() {
                     player={setupPlayer}
                     playerIndex={gameState.currentSetupPlayerIndex}
                     onSelect={(diplomaId, diplomaLabel) => {
-                        socket.emit('choose-path', { roomCode, diplomaId, diplomaLabel });
+                        emitAction('choose-path', { roomCode, diplomaId, diplomaLabel });
                     }}
                 />
             );
@@ -183,7 +199,7 @@ export default function OnlineGame() {
                 <SetupQuestion
                     player={setupPlayer}
                     question={gameState.currentSetupQuestion}
-                    onAnswer={(answer) => socket.emit('answer-setup-question', { roomCode, answer })}
+                    onAnswer={(answer) => emitAction('answer-setup-question', { roomCode, answer })}
                 />
             );
         }
@@ -197,7 +213,7 @@ export default function OnlineGame() {
                     isCorrect={gameState.setupAnswerCorrect}
                     reward={gameState.setupReward}
                     onContinue={() => {
-                        if (isMyTurn(phase)) socket.emit('proceed-to-objective', { roomCode });
+                        if (isMyTurn(phase)) emitAction('proceed-to-objective', { roomCode });
                     }}
                 />
             );
@@ -212,7 +228,7 @@ export default function OnlineGame() {
             return (
                 <ObjectiveCard
                     player={setupPlayer}
-                    onRespond={(accepted) => socket.emit('respond-objective', { roomCode, accepted })}
+                    onRespond={(accepted) => emitAction('respond-objective', { roomCode, accepted })}
                 />
             );
         }
@@ -226,7 +242,7 @@ export default function OnlineGame() {
             return (
                 <GameBoard
                     state={gameState}
-                    onRollDice={() => socket.emit('roll-dice', { roomCode })}
+                    onRollDice={() => emitAction('roll-dice', { roomCode })}
                 />
             );
         }
@@ -240,7 +256,7 @@ export default function OnlineGame() {
                     diceResult={gameState.currentDiceResult}
                     player={currentPlayer}
                     onContinue={() => {
-                        if (isMyTurn(phase)) socket.emit('apply-card', { roomCode });
+                        if (isMyTurn(phase)) emitAction('apply-card', { roomCode });
                     }}
                 />
             );
@@ -256,7 +272,7 @@ export default function OnlineGame() {
                 <QuestionModal
                     question={gameState.currentQuestion}
                     player={currentPlayer}
-                    onAnswer={(answer) => socket.emit('answer-question', { roomCode, answer })}
+                    onAnswer={(answer) => emitAction('answer-question', { roomCode, answer })}
                 />
             );
         }
@@ -270,7 +286,7 @@ export default function OnlineGame() {
             return (
                 <ObjectiveDice
                     player={currentPlayer}
-                    onRoll={() => socket.emit('roll-objective-dice', { roomCode })}
+                    onRoll={() => emitAction('roll-objective-dice', { roomCode })}
                 />
             );
         }
@@ -280,7 +296,7 @@ export default function OnlineGame() {
             return (
                 <TurnSummary
                     state={gameState}
-                    onNext={() => socket.emit('next-turn', { roomCode })}
+                    onNext={() => emitAction('next-turn', { roomCode })}
                 />
             );
         }
@@ -300,8 +316,26 @@ export default function OnlineGame() {
         return null;
     };
 
+    /**
+     * Emit a socket action with double-click protection and timeout.
+     * Locks the UI until a new game-state is received or 8s passes.
+     */
+    const emitAction = useCallback((event, data = {}) => {
+        if (actionPending || !socket) return;
+        setActionPending(true);
+        socket.emit(event, data);
+        // Safety timeout — unlock after 8s if server doesn't respond
+        actionTimeoutRef.current = setTimeout(() => {
+            setActionPending(false);
+            actionTimeoutRef.current = null;
+        }, 8000);
+    }, [actionPending, socket]);
+
     return (
         <div className="min-h-screen bg-game">
+            {/* Connection indicator */}
+            <ConnectionStatus socket={socket} />
+
             {/* Top bar */}
             {gameState && gameState.phase !== 'LOBBY' && gameState.phase !== 'GAME_OVER' && (
                 <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 bg-surface-950/80 backdrop-blur-lg border-b border-white/5">
@@ -320,7 +354,15 @@ export default function OnlineGame() {
             {/* Disconnection warning */}
             {disconnectedPlayer && (
                 <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-sm animate-fade-in">
-                    ⚠️ {disconnectedPlayer} s'est déconnecté
+                    ⚠️ {disconnectedPlayer}
+                </div>
+            )}
+
+            {/* Action pending overlay */}
+            {actionPending && (
+                <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-white/10 backdrop-blur text-white/60 text-xs flex items-center gap-2 animate-fade-in">
+                    <span className="inline-block w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin" />
+                    Envoi en cours...
                 </div>
             )}
 
