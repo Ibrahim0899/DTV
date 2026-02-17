@@ -311,6 +311,7 @@ export default function OnlineGame() {
                 <TurnSummary
                     state={gameState}
                     onNext={() => emitAction('next-turn', { roomCode })}
+                    isActivePlayer={isMyTurn(phase)}
                 />
             );
         }

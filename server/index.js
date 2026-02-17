@@ -108,6 +108,7 @@ const QUESTIONS_START = [
 ];
 
 const GENERAL_KNOWLEDGE_QUESTIONS = [
+    // ── Culture Générale ──
     { q: "Quelle est la capitale de l'Australie ?", a: "Canberra", choices: ["Sydney", "Melbourne", "Canberra"] },
     { q: "Combien de continents y a-t-il ?", a: "7", choices: ["5", "6", "7"] },
     { q: "Qui a peint la Joconde ?", a: "Léonard de Vinci", choices: ["Michel-Ange", "Raphaël", "Léonard de Vinci"] },
@@ -128,6 +129,42 @@ const GENERAL_KNOWLEDGE_QUESTIONS = [
     { q: "Quel animal est le plus rapide ?", a: "Le guépard", choices: ["Le lion", "Le guépard", "Le faucon"] },
     { q: "Quelle est la langue la plus parlée au monde ?", a: "Le mandarin", choices: ["L'anglais", "L'espagnol", "Le mandarin"] },
     { q: "Combien de joueurs dans une équipe de football ?", a: "11", choices: ["9", "11", "13"] },
+    { q: "Quel est le plus petit pays du monde ?", a: "Vatican", choices: ["Monaco", "Vatican", "Malte"] },
+    { q: "De quel continent vient le café ?", a: "Afrique", choices: ["Amérique du Sud", "Asie", "Afrique"] },
+    { q: "Combien de lettres dans l'alphabet français ?", a: "26", choices: ["24", "26", "28"] },
+    { q: "Quel est le métal le plus conducteur ?", a: "L'argent", choices: ["Le cuivre", "L'or", "L'argent"] },
+    { q: "Dans quel pays se trouve le Machu Picchu ?", a: "Pérou", choices: ["Bolivie", "Pérou", "Colombie"] },
+    { q: "Qui a fondé Apple ?", a: "Steve Jobs", choices: ["Bill Gates", "Steve Jobs", "Elon Musk"] },
+    { q: "Quel organe produit l'insuline ?", a: "Le pancréas", choices: ["Le foie", "Le pancréas", "L'estomac"] },
+    { q: "Quelle est la devise de la France ?", a: "Liberté, Égalité, Fraternité", choices: ["Unité, Force, Progrès", "Liberté, Égalité, Fraternité", "Justice, Paix, Travail"] },
+    { q: "Combien de pays dans l'Union Européenne (2024) ?", a: "27", choices: ["25", "27", "30"] },
+    { q: "Quel est le plus grand désert du monde ?", a: "Antarctique", choices: ["Sahara", "Antarctique", "Gobi"] },
+    // ── Réinsertion Professionnelle ──
+    { q: "Qu'est-ce que Pôle Emploi (France Travail) ?", a: "Un service public d'aide à l'emploi", choices: ["Une banque", "Un service public d'aide à l'emploi", "Une école"] },
+    { q: "Que signifie le sigle CV ?", a: "Curriculum Vitae", choices: ["Contrat de Vente", "Curriculum Vitae", "Courrier Validé"] },
+    { q: "Quel document accompagne généralement un CV ?", a: "Une lettre de motivation", choices: ["Un passeport", "Une lettre de motivation", "Un relevé bancaire"] },
+    { q: "Que signifie CDI ?", a: "Contrat à Durée Indéterminée", choices: ["Contrat de Développement Individuel", "Contrat à Durée Indéterminée", "Certificat de Diplôme International"] },
+    { q: "Que signifie CDD ?", a: "Contrat à Durée Déterminée", choices: ["Contrat à Durée Déterminée", "Contrat de Droit Direct", "Certificat de Début de Diplôme"] },
+    { q: "Qu'est-ce qu'un entretien d'embauche ?", a: "Un rendez-vous pour évaluer un candidat", choices: ["Un examen médical", "Un rendez-vous pour évaluer un candidat", "Une formation"] },
+    { q: "Que sont les soft skills ?", a: "Les compétences relationnelles et comportementales", choices: ["Des logiciels informatiques", "Les compétences relationnelles et comportementales", "Des certifications"] },
+    { q: "Qu'est-ce qu'un bilan de compétences ?", a: "Une démarche pour analyser ses compétences et aspirations", choices: ["Un examen scolaire", "Une démarche pour analyser ses compétences et aspirations", "Un test médical"] },
+    { q: "Que signifie VAE ?", a: "Validation des Acquis de l'Expérience", choices: ["Vérification Annuelle d'Emploi", "Validation des Acquis de l'Expérience", "Valeur Ajoutée Économique"] },
+    { q: "Quel est le salaire minimum en France (SMIC) en 2024 ?", a: "Environ 1 400 € net/mois", choices: ["Environ 1 000 € net/mois", "Environ 1 400 € net/mois", "Environ 1 800 € net/mois"] },
+    { q: "Qu'est-ce que le CPF ?", a: "Compte Personnel de Formation", choices: ["Curriculum Personnel de Formation", "Compte Personnel de Formation", "Centre Professionnel de France"] },
+    { q: "Quelle est la durée légale du travail en France ?", a: "35 heures par semaine", choices: ["30 heures par semaine", "35 heures par semaine", "40 heures par semaine"] },
+    { q: "Qu'est-ce qu'une période d'essai ?", a: "Une période pour évaluer le salarié et l'emploi", choices: ["Un test écrit", "Une période pour évaluer le salarié et l'emploi", "Un stage obligatoire"] },
+    { q: "Que signifie RSA ?", a: "Revenu de Solidarité Active", choices: ["Revenu de Solidarité Active", "Régime Social Alternatif", "Réseau Social d'Aide"] },
+    { q: "Qu'est-ce que l'intérim ?", a: "Un travail temporaire via une agence", choices: ["Un stage en entreprise", "Un travail temporaire via une agence", "Un contrat de fonction publique"] },
+    { q: "Que signifie le sigle SMIC ?", a: "Salaire Minimum Interprofessionnel de Croissance", choices: ["Service Minimum d'Insertion et de Compétences", "Salaire Minimum Interprofessionnel de Croissance", "Système de Mobilité Interne et Collective"] },
+    { q: "Qu'est-ce qu'une reconversion professionnelle ?", a: "Changer de métier ou de secteur d'activité", choices: ["Prendre sa retraite", "Changer de métier ou de secteur d'activité", "Obtenir une promotion"] },
+    { q: "Quel organisme gère l'assurance chômage en France ?", a: "France Travail (ex Pôle Emploi)", choices: ["La CAF", "France Travail (ex Pôle Emploi)", "La CPAM"] },
+    { q: "Qu'est-ce qu'un réseau professionnel ?", a: "Des contacts utiles pour sa carrière", choices: ["Un réseau Wi-Fi au travail", "Des contacts utiles pour sa carrière", "Un logiciel de gestion"] },
+    { q: "Que signifie le terme freelance ?", a: "Travailleur indépendant", choices: ["Travailleur indépendant", "Stagiaire non rémunéré", "Employé à mi-temps"] },
+    { q: "Qu'est-ce que LinkedIn ?", a: "Un réseau social professionnel", choices: ["Un moteur de recherche", "Un réseau social professionnel", "Un site d'e-commerce"] },
+    { q: "Que veut dire 'être en insertion professionnelle' ?", a: "Être en démarche pour intégrer le marché du travail", choices: ["Être à la retraite", "Être en démarche pour intégrer le marché du travail", "Être en vacances"] },
+    { q: "Qu'est-ce qu'un micro-entrepreneur ?", a: "Un indépendant avec un régime fiscal simplifié", choices: ["Le patron d'une grande entreprise", "Un indépendant avec un régime fiscal simplifié", "Un employé de mairie"] },
+    { q: "Quel est l'intérêt d'un stage en entreprise ?", a: "Acquérir de l'expérience et des compétences", choices: ["Gagner plus d'argent", "Acquérir de l'expérience et des compétences", "Remplacer un diplôme"] },
+    { q: "Que signifie le sigle ARE ?", a: "Allocation de Retour à l'Emploi", choices: ["Aide à la Reconversion Entrepreneuriale", "Allocation de Retour à l'Emploi", "Assurance Retraite Européenne"] },
 ];
 
 const OBJECTIVES = {
@@ -460,6 +497,7 @@ io.on('connection', (socket) => {
         const isCorrect = answer === room.currentQuestion.a;
         room.usedQuestionIndices.push(room.currentQuestion._index);
         room.questionAnswerCorrect = isCorrect;
+        room.playerAnswer = answer;
 
         if (isCorrect) {
             const currentPlayer = room.players[room.currentPlayerIndex];
@@ -700,6 +738,7 @@ function sanitizeRoom(room) {
         setupAnswerCorrect: room.setupAnswerCorrect,
         setupReward: room.setupReward,
         questionAnswerCorrect: room.questionAnswerCorrect,
+        playerAnswer: room.playerAnswer || null,
         objectiveDiceResult: room.objectiveDiceResult,
         winner: room.winner,
         victoryReason: room.victoryReason,
