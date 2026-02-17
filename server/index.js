@@ -8,6 +8,15 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 
+// ── Global crash protection ──
+process.on('uncaughtException', (err) => {
+    console.error('⚠️ Uncaught Exception (server kept alive):', err.message);
+    console.error(err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('⚠️ Unhandled Rejection (server kept alive):', reason);
+});
+
 const app = express();
 app.use(cors());
 
@@ -250,6 +259,18 @@ function getRandomQuestion(usedIndices = []) {
     return available[Math.floor(Math.random() * available.length)];
 }
 
+// ── Safe handler wrapper (prevents server crash) ──
+function safeHandler(fn) {
+    return (...args) => {
+        try {
+            fn(...args);
+        } catch (err) {
+            console.error(`⚠️ Socket handler error: ${err.message}`);
+            console.error(err.stack);
+        }
+    };
+}
+
 // ── Socket.io Logic ───────────────────────────────────────
 io.on('connection', (socket) => {
     console.log(`✦ Connected: ${socket.id}`);
@@ -266,7 +287,7 @@ io.on('connection', (socket) => {
                 name: playerName,
                 diploma: null,
                 diplomaId: null,
-                stabilityGauge: 0,
+                stabilityGauge: 30,
                 objectiveGauge: 0,
                 objectiveTarget: 0,
                 objectiveText: '',
@@ -311,7 +332,7 @@ io.on('connection', (socket) => {
             name: playerName,
             diploma: null,
             diplomaId: null,
-            stabilityGauge: 0,
+            stabilityGauge: 30,
             objectiveGauge: 0,
             objectiveTarget: 0,
             objectiveText: '',
@@ -543,20 +564,31 @@ io.on('connection', (socket) => {
         const isNewRound = nextIndex === 0;
         const nextTurn = isNewRound ? room.currentTurn + 1 : room.currentTurn;
 
-        // Check victory
-        for (const player of room.players) {
-            if (player.acceptedObjective && player.objectiveGauge >= player.objectiveTarget) {
-                room.winner = sanitizePlayer(player);
-                room.victoryReason = 'objective';
-                room.phase = 'GAME_OVER';
-                io.to(roomCode).emit('game-state', sanitizeRoom(room));
-                return;
-            }
-        }
+        // Check victory at end of 40 turns
         if (nextTurn > MAX_TURNS) {
-            const sorted = [...room.players].sort((a, b) => b.stabilityGauge - a.stabilityGauge);
-            room.winner = sanitizePlayer(sorted[0]);
-            room.victoryReason = 'stability';
+            // ── Fair scoring system ──
+            // Score = stabilityGauge + objectiveBonus
+            // objectiveBonus = (objectiveGauge / objectiveTarget) * 20  (up to 20 points bonus)
+            // Players without objective: bonus = 0
+            // A player MUST have >= 50 stability to be eligible to win
+            const scored = room.players.map(p => {
+                const objBonus = p.acceptedObjective
+                    ? Math.round((Math.min(p.objectiveGauge, p.objectiveTarget) / p.objectiveTarget) * 20)
+                    : 0;
+                const totalScore = p.stabilityGauge + objBonus;
+                const eligible = p.stabilityGauge >= 50;
+                return { ...sanitizePlayer(p), totalScore, objBonus, eligible };
+            });
+
+            // Sort: eligible players first, then by totalScore desc
+            scored.sort((a, b) => {
+                if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
+                return b.totalScore - a.totalScore;
+            });
+
+            room.winner = scored[0];
+            room.victoryReason = scored[0].eligible ? 'score' : 'best_effort';
+            room.finalScores = scored;
             room.phase = 'GAME_OVER';
             io.to(roomCode).emit('game-state', sanitizeRoom(room));
             return;
@@ -742,6 +774,7 @@ function sanitizeRoom(room) {
         objectiveDiceResult: room.objectiveDiceResult,
         winner: room.winner,
         victoryReason: room.victoryReason,
+        finalScores: room.finalScores || null,
     };
 }
 

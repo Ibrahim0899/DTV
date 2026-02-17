@@ -37,8 +37,7 @@ function Confetti() {
     );
 }
 
-export default function VictoryScreen({ winner, reason, players, onPlayAgain }) {
-    const sortedByStability = [...players].sort((a, b) => b.stabilityGauge - a.stabilityGauge);
+export default function VictoryScreen({ winner, reason, players, onPlayAgain, finalScores }) {
     const soundPlayed = useRef(false);
 
     useEffect(() => {
@@ -47,6 +46,20 @@ export default function VictoryScreen({ winner, reason, players, onPlayAgain }) 
             setTimeout(() => playVictory(), 500);
         }
     }, []);
+
+    // Use finalScores if available, otherwise fallback to simple sort
+    const rankings = finalScores || [...players].sort((a, b) => b.stabilityGauge - a.stabilityGauge).map(p => ({
+        ...p,
+        totalScore: p.stabilityGauge,
+        objBonus: 0,
+        eligible: p.stabilityGauge >= 50,
+    }));
+
+    const getReasonText = () => {
+        if (reason === 'last_standing') return `Dernier joueur en lice — victoire par défaut !`;
+        if (reason === 'best_effort') return `Personne n'a atteint 50 de stabilité — meilleur score global !`;
+        return `Score total : ${winner.totalScore} pts (🛡️ ${winner.stabilityGauge} + 🎯 ${winner.objBonus || 0} bonus)`;
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 py-6 sm:py-8 relative overflow-hidden">
@@ -72,19 +85,20 @@ export default function VictoryScreen({ winner, reason, players, onPlayAgain }) 
                         {winner.name}
                     </h3>
 
-                    <p className="text-white/60 text-sm sm:text-base mb-8">
-                        {reason === 'objective'
-                            ? `A rempli sa jauge d'objectif (${winner.objectiveGauge}/${winner.objectiveTarget}) !`
-                            : reason === 'last_standing'
-                                ? `Dernier joueur en lice — victoire par défaut !`
-                                : `Meilleure stabilité (${winner.stabilityGauge} pts) après 40 tours !`}
+                    <p className="text-white/60 text-sm sm:text-base mb-2">
+                        {getReasonText()}
                     </p>
+
+                    {/* Scoring explanation */}
+                    <div className="text-[10px] text-white/30 mb-6 px-4">
+                        Score = 🛡️ Stabilité + 🎯 Bonus objectif (max 20 pts) • Stabilité ≥ 50 requise
+                    </div>
 
                     {/* Leaderboard */}
                     <div className="mb-8">
                         <h4 className="text-xs text-white/40 uppercase tracking-wider mb-3">Classement</h4>
                         <div className="space-y-2">
-                            {sortedByStability.map((player, i) => (
+                            {rankings.map((player, i) => (
                                 <div
                                     key={player.id}
                                     className={`flex items-center justify-between p-3 rounded-xl transition-all ${player.id === winner.id
@@ -103,13 +117,21 @@ export default function VictoryScreen({ winner, reason, players, onPlayAgain }) 
                                         <div className="text-left">
                                             <span className="text-xs sm:text-sm font-medium text-white">{player.name}</span>
                                             <span className="text-[10px] sm:text-xs text-white/30 ml-2">{player.diploma}</span>
+                                            {!player.eligible && (
+                                                <span className="text-[10px] text-red-400/60 ml-1">(&lt;50)</span>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-sm font-bold text-emerald-400">{player.stabilityGauge}</div>
-                                        {player.acceptedObjective && (
-                                            <div className="text-[10px] text-accent-400">Obj: {player.objectiveGauge}/{player.objectiveTarget}</div>
-                                        )}
+                                        <div className="text-sm font-bold text-white">
+                                            {player.totalScore} <span className="text-[10px] text-white/30">pts</span>
+                                        </div>
+                                        <div className="flex gap-2 text-[10px]">
+                                            <span className="text-emerald-400">🛡️{player.stabilityGauge}</span>
+                                            {player.objBonus > 0 && (
+                                                <span className="text-accent-400">🎯+{player.objBonus}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

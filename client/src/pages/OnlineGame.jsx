@@ -323,6 +323,7 @@ export default function OnlineGame() {
                     winner={gameState.winner}
                     reason={gameState.victoryReason}
                     players={gameState.players}
+                    finalScores={gameState.finalScores}
                     onPlayAgain={() => navigate('/')}
                 />
             );
