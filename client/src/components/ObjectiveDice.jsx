@@ -2,7 +2,7 @@ import { useState } from 'react';
 import DiceRoller from './DiceRoller.jsx';
 import { playDiceResult } from '../hooks/useSound.js';
 
-export default function ObjectiveDice({ player, onRoll }) {
+export default function ObjectiveDice({ player, onRoll, serverDiceResult }) {
     const [rolled, setRolled] = useState(false);
 
     const handleResult = () => {
@@ -26,7 +26,7 @@ export default function ObjectiveDice({ player, onRoll }) {
                 </p>
 
                 {!rolled ? (
-                    <DiceRoller sides={3} onResult={handleResult} label="Lancer le dé d'objectif" />
+                    <DiceRoller sides={3} onResult={handleResult} label="Lancer le dé d'objectif" serverResult={serverDiceResult} />
                 ) : (
                     <div className="text-accent-300 font-medium animate-fade-in">
                         Résultat en cours...

@@ -2,7 +2,7 @@ import PlayerDashboard from './PlayerDashboard.jsx';
 import DiceRoller from './DiceRoller.jsx';
 import { playDiceResult } from '../hooks/useSound.js';
 
-export default function GameBoard({ state, onRollDice }) {
+export default function GameBoard({ state, onRollDice, serverDiceResult }) {
     const currentPlayer = state.players[state.currentPlayerIndex];
 
     const handleDiceResult = () => {
@@ -60,7 +60,7 @@ export default function GameBoard({ state, onRollDice }) {
                         </div>
                     </div>
 
-                    <DiceRoller sides={6} onResult={handleDiceResult} label="Lancer le dé" />
+                    <DiceRoller sides={6} onResult={handleDiceResult} label="Lancer le dé" serverResult={serverDiceResult} />
                 </div>
             </div>
         </div>

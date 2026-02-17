@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-export default function DiceRoller({ sides = 6, onResult, label, disabled = false }) {
+export default function DiceRoller({ sides = 6, onResult, label, disabled = false, serverResult }) {
     const [rolling, setRolling] = useState(false);
     const [displayValue, setDisplayValue] = useState(null);
     const [finalValue, setFinalValue] = useState(null);
@@ -19,10 +19,10 @@ export default function DiceRoller({ sides = 6, onResult, label, disabled = fals
             count++;
             if (count >= maxCycles) {
                 clearInterval(intervalRef.current);
-                // Show a random number visually, but the real result comes from the reducer
-                const visualResult = Math.floor(Math.random() * sides) + 1;
-                setDisplayValue(visualResult);
-                setFinalValue(visualResult);
+                // Use server result if provided, otherwise fallback to random (local mode)
+                const result = serverResult != null ? serverResult : (Math.floor(Math.random() * sides) + 1);
+                setDisplayValue(result);
+                setFinalValue(result);
                 setRolling(false);
                 // Fire callback after a short delay for the landing animation
                 setTimeout(() => onResult(), 500);

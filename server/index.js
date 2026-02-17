@@ -462,7 +462,14 @@ io.on('connection', (socket) => {
         room.questionAnswerCorrect = isCorrect;
 
         if (isCorrect) {
-            room.phase = 'OBJECTIVE_DICE';
+            const currentPlayer = room.players[room.currentPlayerIndex];
+            if (currentPlayer.acceptedObjective) {
+                room.phase = 'OBJECTIVE_DICE';
+            } else {
+                // No objective — skip objective dice
+                room.objectiveDiceResult = null;
+                room.phase = 'TURN_SUMMARY';
+            }
         } else {
             room.objectiveDiceResult = null;
             room.phase = 'TURN_SUMMARY';
@@ -527,6 +534,78 @@ io.on('connection', (socket) => {
         room.objectiveDiceResult = null;
         room.phase = 'MAIN_DICE';
         io.to(roomCode).emit('game-state', sanitizeRoom(room));
+    });
+
+    // ── Leave Game (voluntary) ──
+    socket.on('leave-game', ({ roomCode }) => {
+        const room = rooms.get(roomCode);
+        if (!room) return;
+        const idx = room.players.findIndex(p => p.socketId === socket.id);
+        if (idx === -1) return;
+
+        const leavingName = room.players[idx].name;
+        room.players.splice(idx, 1);
+
+        // Re-index player IDs
+        room.players.forEach((p, i) => { p.id = i; });
+
+        if (room.players.length === 0) {
+            rooms.delete(roomCode);
+            return;
+        }
+
+        // If only 1 player left and game is in progress, end the game
+        if (room.started && room.players.length === 1) {
+            room.winner = sanitizePlayer(room.players[0]);
+            room.victoryReason = 'last_standing';
+            room.phase = 'GAME_OVER';
+            io.to(roomCode).emit('game-state', sanitizeRoom(room));
+            io.to(roomCode).emit('player-left', { playerName: leavingName });
+            return;
+        }
+
+        if (room.started) {
+            // Adjust currentPlayerIndex
+            if (idx < room.currentPlayerIndex) {
+                room.currentPlayerIndex = room.currentPlayerIndex - 1;
+            } else if (idx === room.currentPlayerIndex) {
+                // It was this player's turn — move to next
+                room.currentPlayerIndex = room.currentPlayerIndex % room.players.length;
+                room.currentDiceResult = null;
+                room.currentCard = null;
+                room.currentQuestion = null;
+                room.questionAnswerCorrect = null;
+                room.objectiveDiceResult = null;
+                room.phase = 'MAIN_DICE';
+            }
+            // Ensure index is in bounds
+            if (room.currentPlayerIndex >= room.players.length) {
+                room.currentPlayerIndex = 0;
+            }
+            room.players.forEach((p, i) => { p.isTurn = i === room.currentPlayerIndex; });
+
+            // Adjust setup indices too
+            if (room.currentSetupPlayerIndex >= room.players.length) {
+                room.currentSetupPlayerIndex = room.players.length - 1;
+            }
+
+            // Transfer host if needed
+            if (room.hostId === socket.id && room.players.length > 0) {
+                room.hostId = room.players[0].socketId;
+            }
+
+            io.to(roomCode).emit('game-state', sanitizeRoom(room));
+            io.to(roomCode).emit('player-left', { playerName: leavingName });
+        } else {
+            // Game hasn't started — transfer host if needed
+            if (room.hostId === socket.id && room.players.length > 0) {
+                room.hostId = room.players[0].socketId;
+            }
+            io.to(roomCode).emit('room-update', { players: room.players.map(sanitizePlayer), phase: room.phase });
+            io.to(roomCode).emit('player-left', { playerName: leavingName });
+        }
+        socket.leave(roomCode);
+        console.log(`✦ ${leavingName} left room ${roomCode}`);
     });
 
     // ── Disconnect ──

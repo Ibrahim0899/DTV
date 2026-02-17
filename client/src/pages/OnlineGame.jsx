@@ -81,7 +81,12 @@ export default function OnlineGame() {
         });
 
         socket.on('player-disconnected', ({ playerName: name }) => {
-            setDisconnectedPlayer(name);
+            setDisconnectedPlayer(`${name} s'est déconnecté`);
+            setTimeout(() => setDisconnectedPlayer(null), 5000);
+        });
+
+        socket.on('player-left', ({ playerName: name }) => {
+            setDisconnectedPlayer(`${name} a quitté la partie`);
             setTimeout(() => setDisconnectedPlayer(null), 5000);
         });
 
@@ -243,6 +248,7 @@ export default function OnlineGame() {
                 <GameBoard
                     state={gameState}
                     onRollDice={() => emitAction('roll-dice', { roomCode })}
+                    serverDiceResult={gameState.currentDiceResult}
                 />
             );
         }
@@ -266,7 +272,14 @@ export default function OnlineGame() {
         if (phase === 'END_TURN_QUESTION') {
             const currentPlayer = gameState.players[gameState.currentPlayerIndex];
             if (!isMyTurn(phase)) {
-                return <WaitingScreen message={`${currentPlayer.name} répond à une question...`} gameState={gameState} />;
+                return (
+                    <WaitingScreen
+                        message={`${currentPlayer.name} répond à une question...`}
+                        gameState={gameState}
+                        spectateQuestion={gameState.currentQuestion}
+                        spectatePlayerName={currentPlayer.name}
+                    />
+                );
             }
             return (
                 <QuestionModal
@@ -287,6 +300,7 @@ export default function OnlineGame() {
                 <ObjectiveDice
                     player={currentPlayer}
                     onRoll={() => emitAction('roll-objective-dice', { roomCode })}
+                    serverDiceResult={gameState.objectiveDiceResult}
                 />
             );
         }
@@ -342,11 +356,22 @@ export default function OnlineGame() {
                     <h2 className="font-display font-bold text-sm bg-gradient-to-r from-primary-400 to-accent-400 bg-clip-text text-transparent">
                         Découvre ta Voie
                     </h2>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
                         <span className="text-[10px] text-white/30 bg-white/5 px-2 py-1 rounded font-mono">{roomCode}</span>
                         {gameState.phase !== 'PATH_SELECTION' && gameState.phase !== 'SETUP_QUESTION' && gameState.phase !== 'SETUP_RESULT' && gameState.phase !== 'OBJECTIVE_DISPLAY' && (
                             <span className="text-xs text-white/40">Tour {gameState.currentTurn}/40</span>
                         )}
+                        <button
+                            onClick={() => {
+                                if (confirm('Quitter la partie ? Les autres joueurs continueront sans toi.')) {
+                                    socket?.emit('leave-game', { roomCode });
+                                    navigate('/');
+                                }
+                            }}
+                            className="text-[10px] text-red-400/60 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded transition-all"
+                        >
+                            🚪 Quitter
+                        </button>
                     </div>
                 </div>
             )}
@@ -374,7 +399,7 @@ export default function OnlineGame() {
 }
 
 // ── Waiting Screen (for non-active players) ───────────────
-function WaitingScreen({ message, gameState, showBoard }) {
+function WaitingScreen({ message, gameState, showBoard, spectateQuestion, spectatePlayerName }) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
             {showBoard && gameState && (
@@ -405,12 +430,45 @@ function WaitingScreen({ message, gameState, showBoard }) {
                 </div>
             )}
 
-            <div className="glass-card-strong p-10 max-w-sm w-full text-center animate-slide-up">
-                <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary-500/20 border border-primary-400/30 flex items-center justify-center">
-                    <span className="animate-spin text-xl">⏳</span>
+            {/* Spectate Question Display */}
+            {spectateQuestion && (
+                <div className="glass-card-strong p-6 sm:p-8 max-w-lg w-full mb-4 animate-slide-up">
+                    <div className="text-center mb-4">
+                        <span className="inline-block px-3 py-1 text-xs font-semibold tracking-wider uppercase text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-full mb-3">
+                            👁️ Spectateur
+                        </span>
+                        <h3 className="font-display text-lg font-bold text-white mb-1">
+                            Question pour {spectatePlayerName}
+                        </h3>
+                    </div>
+                    <p className="text-white/80 text-center text-base mb-6 leading-relaxed">
+                        {spectateQuestion.q}
+                    </p>
+                    <div className="space-y-2">
+                        {spectateQuestion.choices.map((choice, i) => (
+                            <div
+                                key={i}
+                                className="w-full p-3 rounded-xl bg-white/5 border-2 border-transparent text-white/60 text-sm"
+                            >
+                                <span className="inline-block w-6 h-6 rounded-full bg-white/10 text-center text-xs leading-6 mr-3">
+                                    {String.fromCharCode(65 + i)}
+                                </span>
+                                {choice}
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-[10px] text-white/30 text-center mt-4">En attente de la réponse de {spectatePlayerName}...</p>
                 </div>
-                <p className="text-white/60 text-lg">{message}</p>
-            </div>
+            )}
+
+            {!spectateQuestion && (
+                <div className="glass-card-strong p-10 max-w-sm w-full text-center animate-slide-up">
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-primary-500/20 border border-primary-400/30 flex items-center justify-center">
+                        <span className="animate-spin text-xl">⏳</span>
+                    </div>
+                    <p className="text-white/60 text-lg">{message}</p>
+                </div>
+            )}
         </div>
     );
 }

@@ -75,7 +75,9 @@ export default function VictoryScreen({ winner, reason, players, onPlayAgain }) 
                     <p className="text-white/60 text-sm sm:text-base mb-8">
                         {reason === 'objective'
                             ? `A rempli sa jauge d'objectif (${winner.objectiveGauge}/${winner.objectiveTarget}) !`
-                            : `Meilleure stabilité (${winner.stabilityGauge} pts) après 40 tours !`}
+                            : reason === 'last_standing'
+                                ? `Dernier joueur en lice — victoire par défaut !`
+                                : `Meilleure stabilité (${winner.stabilityGauge} pts) après 40 tours !`}
                     </p>
 
                     {/* Leaderboard */}
